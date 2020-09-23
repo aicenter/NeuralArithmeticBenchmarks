@@ -1,1 +1,3 @@
-# MagneticMicroRobot
+# Benchmark for Neural Arithmetics
+
+The repository is a collection of real data from interesting engineering applications. So far, it consists of regression problems, but more are coming...
