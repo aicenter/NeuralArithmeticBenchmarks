@@ -10,7 +10,7 @@ include(srcdir("bench.jl"))
 
 FORCERUN = false
 NRRUNS   = 10
-SAVEPATH = datadir(splitext(basename(@__FILE__))[1])
+SAVEPATH = datadir("training", splitext(basename(@__FILE__))[1])
 
 @with_kw struct Ext1DFConfig
     T        = :Float32
