@@ -31,7 +31,13 @@ Wraps `make_ckptcallback` to create a callback that saves checkpoints.
 * `nriter`: initial checkpoint number
 
 ```julia-repl
-julia> @ckptcallback f dir nriter
+julia> f() = struct2ckpt(model)
+julia> cb = @ckptcallback f dir nriter
+```
+
+If you want to save only every `N`th checkpoint you can make use of `skipcalls`:
+```julia-repl
+julia> skipcb = skipcalls(cb, N)
 ```
 """
 macro ckptcallback(f, folder, nriter)
@@ -56,4 +62,21 @@ function extract(d::Array{<:Dict}, key::String)
         (i,v)
     end
     map(first,vi), map(last,vi)
+end
+
+"""
+    skipcalls(f::Function, calls::Int)
+
+Returns a function that, after being called (and executed) once, has to be
+called another `calls` times until it executes again.
+"""
+function skipcalls(f::Function, calls::Int)
+    called = 0
+    function throttled(args...; kwargs...)
+        if called % calls == 0
+            f(args...; kwargs...)
+            called = 0
+        end
+        called += 1
+    end
 end

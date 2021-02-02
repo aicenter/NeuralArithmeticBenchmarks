@@ -5,12 +5,21 @@ using Flux
 using NeuralArithmetic
 using Parameters
 
+include(srcdir("struct2ckpt.jl"))
+include(srcdir("ckpt.jl"))
 include(srcdir("bench.jl"))
-#include(srcdir("struct2ckpt.jl"))
 
-FORCERUN = false
-NRRUNS   = 10
-SAVEPATH = datadir("training", splitext(basename(@__FILE__))[1])
+# store results here
+# data/_* is in .gitignore, so all checkpoints should go in e.g. data/_training
+SAVEPATH = datadir("_training", splitext(basename(@__FILE__))[1])
+
+FORCERUN = true
+VERBOSE  = true
+NRRUNS   = 1
+# CKPT_DIR = "" does not write any checkpoints
+CKPT_DIR  = datadir("_ckpts")
+CKPT_STEP = 1000
+
 
 @with_kw struct Ext1DFConfig
     T        = :Float32
@@ -23,7 +32,7 @@ SAVEPATH = datadir("training", splitext(basename(@__FILE__))[1])
 
     hdim     = 2
 
-    nrepochs = 200
+    nrepochs = 20000
     Opt      = :RMSProp
     lr       = 1e-3
 
@@ -61,6 +70,7 @@ function datageneration(config::Ext1DFConfig)
     (train, test) 
 end
 
+
 function buildmodel(config::Ext1DFConfig)
     @unpack hdim, T = config
     model = Chain(NaiveNPU(1,hdim), NAU(hdim,1))
@@ -69,17 +79,28 @@ function buildmodel(config::Ext1DFConfig)
     fmap(x->eval(T).(x), model)
 end
 
+
+"""
+    training!(config::Ext1DFConfig, model, train, test; kw...)
+
+Basically just a place to define the loss function for `Ext1DFConfig`.
+"""
 function training!(config::Ext1DFConfig, model, train, test; kw...)
+    # @unpack βl1 = config
 
     # data error. could also be something else
     mse(x,y)  = Flux.mse(model(x), y)
     # maybe some regularization?
     reg(ps)   = sum(x->sum(abs,x), ps)
     # final loss that is passed to `training!`
-    loss(x,y) = mse(x,y)  # + reg(ps)
+    loss(x,y) = mse(x,y)  # + βl1*reg(ps)
 
     training!(config, loss, model, train, test; kw...)
 end
 
-config = Ext1DFConfig()
-bench(config, SAVEPATH, NRRUNS, force=FORCERUN)
+for nr in 1:NRRUNS
+    config = Ext1DFConfig(nrrun=nr)
+    ckpt_dir = joinpath(CKPT_DIR, savename(config, scientific=10))
+    run(config) = bench(config, verbose=VERBOSE, ckpt_dir=ckpt_dir, ckpt_step=CKPT_STEP)
+    produce_or_load(SAVEPATH, config, run; scientific=10, force=FORCERUN)
+end

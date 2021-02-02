@@ -1,4 +1,15 @@
-function training!(config, loss::Function, model, train, test; verbose=true, ckpt_dir=nothing)
+datageneration(config) = error("`datageneration` is not implemented for $(typeof(config))!")
+
+buildmodel(config) = error("`buildmodel` is not implemented for $(typeof(config))!")
+
+"""
+    training!(config, loss::Function, model, train, test; verbose=true, ckpt_dir=nothing, ckpt_step=100)
+
+Train the model and return `merge(config, result)`.  If `ckpt_dir` is not
+nothing, saves a checkpoint of the model every `ckpt_step` iterations.
+"""
+function training!(config, loss::Function, model, train, test;
+                   verbose=true, ckpt_dir::String="", ckpt_step=100)
     @unpack Opt, lr = config
     opt = eval(Opt)(lr)
 
@@ -9,12 +20,14 @@ function training!(config, loss::Function, model, train, test; verbose=true, ckp
     itercb() = nriter += 1
     callbacks = []
     if verbose
-        push!(callbacks, Flux.throttle(()->(@info loss(test...) mse(test...)),0.1))
+        cb() = (@info "Iteration #$nriter" loss(test...) mse(test...))
+        push!(callbacks, Flux.throttle(cb, 0.1))
     end
-    # if !isnothing(ckpt_dir)
-    #     ckptcb = @ckptcallback ckpt ckpt_dir nriter
-    #     push!(callbacks, ckpt)
-    # end
+    if length(ckpt_dir) > 0
+        ckpt() = struct2ckpt(model)
+        ckptcb = @ckptcallback ckpt ckpt_dir nriter
+        push!(callbacks, skipcalls(ckptcb, ckpt_step))
+    end
     push!(callbacks, itercb)
 
     Flux.train!(loss, params(model), train, opt, cb=callbacks)
@@ -27,17 +40,8 @@ function training!(config, loss::Function, model, train, test; verbose=true, ckp
     merge(struct2dict(config), result)
 end
 
-function bench(config, path, nrruns; digits=10, kw...)
-    for nr in 1:nrruns
-        config = typeof(config)(nrrun=nr)
-
-        #calls bench(config) internally
-        produce_or_load(path, config, bench; digits=digits, kw...)
-    end
-end
-
-function bench(config)
+function bench(config; kw...)
     (train,test) = datageneration(config)
     model = buildmodel(config)
-    result = training!(config, model, train, test)
+    result = training!(config, model, train, test; kw...)
 end
