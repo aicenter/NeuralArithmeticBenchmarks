@@ -39,18 +39,6 @@ CKPT_STEP = 1000
     nrrun    = 1
 end
 
-"""
-    datageneration(config::Ext1DFConfig)
-
-Takes a config and returns a tuple two datasets: `(train,test)`.  The train
-dataset should be an iterable that contains inputs and labels, i.e.:
-
-    train = ((X,Y) for i in 1:nrepochs)
-
-The testing dataset just just a tuple of inputs and labels:
-
-    test  = (Xt,Yt)
-"""
 function datageneration(config::Ext1DFConfig)
     @unpack nrepochs, dx, xstart, xend, xtstart, xtend, T = config
 

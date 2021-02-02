@@ -1,7 +1,7 @@
 """
     struct2ckpt(s; prefix="/Params")
 
-Calls `struct2ckpt!` with a new ckpt.
+Calls `struct2ckpt!` with an empty `Dict`.
 """
 function struct2ckpt(s; prefix="/Params")
     r = Dict{Any,Any}()
@@ -14,10 +14,10 @@ end
 
 Convert a struct `s` to a checkpoint dictionary e.g.:
 
-    m = Chain(Dense(2,2),...)
+    m = Chain(Dense(1,1),...)
 
-    -> "/prefix/layers/1/W" => W
-       "/prefix/layers/1/b" => b
+    -> "/Params/Chain-layers/Tuple-1/Dense-b" => Float32[0.0]
+       "/Params/Chain-layers/Tuple-1/Dense-W" => Float32[-0.783413]
        ...
 
 Recursion is stopped at `AbstractArray`s.

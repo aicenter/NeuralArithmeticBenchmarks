@@ -30,11 +30,15 @@ Wraps `make_ckptcallback` to create a callback that saves checkpoints.
 * `dir`: checkpoint save dir
 * `nriter`: initial checkpoint number
 
+## Example
+
+Create a callback that saves the output of `f` to `dir/checkpoint-nriter=nriter.bson`
+The value of `nriter` can be increased with a seperate callback:
 ```julia-repl
 julia> f() = struct2ckpt(model)
 julia> cb = @ckptcallback f dir nriter
+julia> itercb() = nriter += 1
 ```
-
 If you want to save only every `N`th checkpoint you can make use of `skipcalls`:
 ```julia-repl
 julia> skipcb = skipcalls(cb, N)
